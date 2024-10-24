@@ -1,18 +1,14 @@
 import numpy as np
 
-# Define the target fitness function to optimize
 def target_function(x):
-    return x**2 + np.random.normal(0, 0.1)  # Maximize x^2 with slight noise
+    return x**2 + np.random.normal(0, 0.1)
 
-# Generate initial population
 def create_population(size, bounds):
     return np.random.uniform(bounds[0], bounds[1], size)
 
-# Calculate fitness for each individual
 def calculate_fitness(population):
     return np.array([target_function(ind) for ind in population])
 
-# Selection of individuals based on fitness
 def select_parents(population, fitness):
     fitness_sum = np.sum(fitness)
     if fitness_sum == 0:
@@ -21,35 +17,31 @@ def select_parents(population, fitness):
     probabilities = fitness / fitness_sum
     return population[np.random.choice(range(len(population)), size=2, p=probabilities)]
 
-# Crossover operation
 def crossover(parent1, parent2, crossover_rate):
     if np.random.rand() < crossover_rate:
-        return (parent1 + parent2) / 2  # Simple average
-    return parent1  # No crossover, return parent1
+        return (parent1 + parent2) / 2
+    return parent1
 
-# Mutation operation
 def mutate(individual, mutation_rate, bounds):
     if np.random.rand() < mutation_rate:
         mutation = np.random.uniform(-1, 1)
         individual += mutation
-        # Ensure the individual is within bounds
         return np.clip(individual, bounds[0], bounds[1])
     return individual
 
-# Replacement strategy (elitism)
 def replacement(old_population, new_population):
     combined_population = np.concatenate((old_population, new_population))
     combined_fitness = calculate_fitness(combined_population)
-    # Select the best individuals to form the new population
     best_indices = np.argsort(combined_fitness)[-len(old_population):]
     return combined_population[best_indices]
 
-# Main Genetic Algorithm function
 def genetic_algorithm(pop_size, bounds, generations, mutation_rate, crossover_rate):
     population = create_population(pop_size, bounds)
+
     for gen in range(generations):
         fitness = calculate_fitness(population)
-        print(f"Generation {gen + 1}: Best Fitness = {round(np.max(fitness), 5)}")
+        best_fitness = round(np.max(fitness), 5)
+        print(f"Generation {gen + 1}: Best Fitness = {best_fitness}")
 
         new_population = []
         for _ in range(pop_size // 2):
@@ -58,23 +50,20 @@ def genetic_algorithm(pop_size, bounds, generations, mutation_rate, crossover_ra
             child2 = mutate(crossover(parent2, parent1, crossover_rate), mutation_rate, bounds)
             new_population.extend([child1, child2])
         
-        # Replacement strategy
         population = replacement(population, new_population)
-    
-    # Final best result
+
     final_fitness = calculate_fitness(population)
     best_idx = np.argmax(final_fitness)
-    best_individual = int(round(population[best_idx]))  # Round to int
+    best_individual = int(round(population[best_idx]))
     best_fitness = round(final_fitness[best_idx], 5)
     
     print(f"Best individual: {best_individual}, Fitness: {best_fitness}")
 
-# Parameters
 POPULATION_SIZE = 10
 GENERATION_COUNT = 50
 MUTATION_RATE = 0.1
 CROSSOVER_RATE = 0.7
 BOUNDS = (0, 4)
 
-# Run the genetic algorithm
 genetic_algorithm(POPULATION_SIZE, BOUNDS, GENERATION_COUNT, MUTATION_RATE, CROSSOVER_RATE)
+
