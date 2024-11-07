@@ -1,0 +1,56 @@
+import numpy as np
+
+# Define the optimization function (Sphere function)
+def sphere_function(x):
+    return np.sum(x**2)
+
+# PSO parameters
+num_particles = 30       # Number of particles
+num_dimensions = 2        # Dimensionality of the problem
+num_iterations = 100      # Number of iterations
+w = 0.5                   # Inertia weight
+c1 = 1.5                  # Cognitive (personal) coefficient
+c2 = 1.5                  # Social (global) coefficient
+
+# Initialize particles' positions and velocities
+particles_position = np.random.uniform(-10, 10, (num_particles, num_dimensions))
+particles_velocity = np.random.uniform(-1, 1, (num_particles, num_dimensions))
+
+# Initialize personal best positions and global best position
+personal_best_position = particles_position.copy()
+personal_best_value = np.array([sphere_function(x) for x in particles_position])
+global_best_position = personal_best_position[np.argmin(personal_best_value)]
+global_best_value = np.min(personal_best_value)
+
+# PSO main loop
+for t in range(num_iterations):
+    for i in range(num_particles):
+        # Update velocity
+        r1, r2 = np.random.rand(num_dimensions), np.random.rand(num_dimensions)
+        cognitive_velocity = c1 * r1 * (personal_best_position[i] - particles_position[i])
+        social_velocity = c2 * r2 * (global_best_position - particles_position[i])
+        particles_velocity[i] = w * particles_velocity[i] + cognitive_velocity + social_velocity
+
+        # Update position
+        particles_position[i] = particles_position[i] + particles_velocity[i]
+
+        # Evaluate fitness
+        fitness_value = sphere_function(particles_position[i])
+
+        # Update personal best
+        if fitness_value < personal_best_value[i]:
+            personal_best_value[i] = fitness_value
+            personal_best_position[i] = particles_position[i]
+
+        # Update global best
+        if fitness_value < global_best_value:
+            global_best_value = fitness_value
+            global_best_position = particles_position[i]
+
+    # Print best value in current iteration
+    print(f"Iteration {t+1}/{num_iterations}, Best Value: {global_best_value}")
+
+# Output the best solution found
+print("Best solution found:")
+print("Position:",(global_best_position))
+print("Value:", (global_best_value))
