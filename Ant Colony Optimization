@@ -1,0 +1,143 @@
+import random
+import math
+import numpy as np
+
+class AntColonyTSP:
+    def __init__(self, cities, n_ants, n_iterations, alpha, beta, rho, tau_0):
+        self.cities = cities
+        self.n_cities = len(cities)
+        self.n_ants = n_ants
+        self.n_iterations = n_iterations
+        self.alpha = alpha  # Pheromone importance
+        self.beta = beta  # Heuristic information importance
+        self.rho = rho  # Evaporation rate
+        self.tau_0 = tau_0  # Initial pheromone value
+        self.dist_matrix = self.calculate_distances()  # Calculate the distance matrix
+        self.pheromone_matrix = np.full((self.n_cities, self.n_cities), tau_0)  # Initialize pheromone matrix
+
+    def calculate_distances(self):
+        """Calculate the Euclidean distance between each pair of cities."""
+        dist_matrix = np.zeros((self.n_cities, self.n_cities))
+        for i in range(self.n_cities):
+            for j in range(i + 1, self.n_cities):
+                dist = math.sqrt((self.cities[i][0] - self.cities[j][0])**2 +
+                                 (self.cities[i][1] - self.cities[j][1])**2)
+                dist_matrix[i][j] = dist_matrix[j][i] = dist
+        self.print_distance_matrix(dist_matrix)  # Print the distance matrix
+        return dist_matrix
+
+    def print_distance_matrix(self, dist_matrix):
+        """Print the distance matrix with cities numbered starting from 1."""
+        print("Distance Matrix:")
+        print("        ", end="")
+        for i in range(self.n_cities):
+            print(f"City {i + 1}", end="   ")  # Print cities starting from 1
+        print()
+        
+        for i in range(self.n_cities):
+            print(f"City {i + 1}: ", end="")  # Print cities starting from 1
+            for j in range(self.n_cities):
+                print(f"{dist_matrix[i][j]:.2f}", end="   ")
+            print()
+
+    def select_next_city(self, ant, visited):
+        """Select the next city for the ant to visit based on pheromone and distance."""
+        current_city = ant[-1]
+        probabilities = []
+        for next_city in range(self.n_cities):
+            if next_city not in visited:
+                pheromone = self.pheromone_matrix[current_city][next_city] ** self.alpha
+                distance = self.dist_matrix[current_city][next_city]
+                heuristic = (1.0 / distance) ** self.beta
+                probabilities.append(pheromone * heuristic)
+            else:
+                probabilities.append(0)
+
+        total = sum(probabilities)
+        probabilities = [prob / total for prob in probabilities]
+        return random.choices(range(self.n_cities), probabilities)[0]
+
+    def construct_solution(self):
+        """Construct a solution for one ant."""
+        visited = set()
+        ant = [random.randint(0, self.n_cities - 1)]  # Start at a random city
+        visited.add(ant[0])
+
+        for _ in range(self.n_cities - 1):
+            next_city = self.select_next_city(ant, visited)
+            ant.append(next_city)
+            visited.add(next_city)
+
+        return ant
+
+    def calculate_total_distance(self, solution):
+        """Calculate the total distance of a solution."""
+        total_distance = 0
+        for i in range(len(solution) - 1):
+            total_distance += self.dist_matrix[solution[i]][solution[i + 1]]
+        total_distance += self.dist_matrix[solution[-1]][solution[0]]  # Return to start
+        return total_distance
+
+    def update_pheromones(self, all_solutions, all_distances):
+        """Update pheromones based on the solutions found by the ants."""
+        # Evaporate pheromone
+        self.pheromone_matrix *= (1 - self.rho)
+
+        # Deposit pheromone
+        for i in range(self.n_ants):
+            solution = all_solutions[i]
+            distance = all_distances[i]
+            pheromone_deposit = 1.0 / distance
+            for i in range(len(solution) - 1):
+                self.pheromone_matrix[solution[i]][solution[i + 1]] += pheromone_deposit
+            self.pheromone_matrix[solution[-1]][solution[0]] += pheromone_deposit  # Return to start
+
+    def run(self):
+        """Run the Ant Colony Optimization algorithm."""
+        best_solution = None
+        best_distance = float('inf')
+
+        for _ in range(self.n_iterations):
+            all_solutions = []
+            all_distances = []
+
+            # Each ant constructs a solution
+            for _ in range(self.n_ants):
+                solution = self.construct_solution()
+                total_distance = self.calculate_total_distance(solution)
+                all_solutions.append(solution)
+                all_distances.append(total_distance)
+
+                # Update best solution
+                if total_distance < best_distance:
+                    best_solution = solution
+                    best_distance = total_distance
+
+            # Update pheromones
+            self.update_pheromones(all_solutions, all_distances)
+
+        return best_solution, best_distance
+
+
+# Example usage
+
+# Define cities (x, y) coordinates
+cities = [(0, 0), (1, 3), (4, 3), (6, 1), (5, 0), (3, 2), (2, 5), (7, 6)]
+
+# Parameters
+n_ants = 10
+n_iterations = 100
+alpha = 1.0  # Influence of pheromone
+beta = 2.0   # Influence of distance heuristic
+rho = 0.1    # Pheromone evaporation rate
+tau_0 = 1.0  # Initial pheromone level
+
+# Create the ACO solver
+aco = AntColonyTSP(cities, n_ants, n_iterations, alpha, beta, rho, tau_0)
+
+# Run the algorithm
+best_solution, best_distance = aco.run()
+
+# Output the results
+print(f"\nBest solution (starting from City 1): {['City ' + str(i+1) for i in best_solution]}")
+print(f"Best distance: {best_distance:.2f}")
