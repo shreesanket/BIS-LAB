@@ -1,0 +1,81 @@
+import numpy as np
+
+class GreyWolfOptimizer:
+    def __init__(self, obj_function, dim, lb, ub, population_size=30, max_iter=100):
+        self.obj_function = obj_function
+        self.dim = dim
+        self.lb = lb
+        self.ub = ub
+        self.population_size = population_size
+        self.max_iter = max_iter
+
+        # Initialize the positions of the wolves
+        self.positions = np.random.uniform(lb, ub, (population_size, dim))
+        self.alpha_pos = np.zeros(dim)
+        self.beta_pos = np.zeros(dim)
+        self.delta_pos = np.zeros(dim)
+        self.alpha_score = float('inf')
+        self.beta_score = float('inf')
+        self.delta_score = float('inf')
+
+    def optimize(self):
+        for iteration in range(self.max_iter):
+            for i in range(self.population_size):
+                # Calculate the fitness of each wolf
+                fitness = self.obj_function(self.positions[i])
+
+                # Update Alpha, Beta, and Delta wolves
+                if fitness < self.alpha_score:
+                    self.alpha_score = fitness
+                    self.alpha_pos = self.positions[i].copy()
+                elif fitness < self.beta_score:
+                    self.beta_score = fitness
+                    self.beta_pos = self.positions[i].copy()
+                elif fitness < self.delta_score:
+                    self.delta_score = fitness
+                    self.delta_pos = self.positions[i].copy()
+
+            # Update the positions of wolves
+            for i in range(self.population_size):
+                for d in range(self.dim):
+                    # Generate random numbers
+                    r1, r2 = np.random.rand(), np.random.rand()
+                    A1 = 2 * r1 - 1  # coefficient for exploration/exploitation
+                    C1 = 2 * r2      # coefficient for attraction to alpha wolf
+
+                    r1, r2 = np.random.rand(), np.random.rand()
+                    A2 = 2 * r1 - 1
+                    C2 = 2 * r2
+
+                    r1, r2 = np.random.rand(), np.random.rand()
+                    A3 = 2 * r1 - 1
+                    C3 = 2 * r2
+
+                    # Calculate the distances from the alpha, beta, and delta wolves
+                    D_alpha = abs(C1 * self.alpha_pos[d] - self.positions[i, d])
+                    D_beta = abs(C2 * self.beta_pos[d] - self.positions[i, d])
+                    D_delta = abs(C3 * self.delta_pos[d] - self.positions[i, d])
+
+                    # Calculate the new positions for each wolf
+                    X1 = self.alpha_pos[d] - A1 * D_alpha
+                    X2 = self.beta_pos[d] - A2 * D_beta
+                    X3 = self.delta_pos[d] - A3 * D_delta
+
+                    # Update the position by averaging the attraction from all three wolves
+                    self.positions[i, d] = (X1 + X2 + X3) / 3
+
+                # Clamp positions to stay within the bounds
+                self.positions[i] = np.clip(self.positions[i], self.lb, self.ub)
+
+            print(f"Iteration {iteration + 1}/{self.max_iter}, Best Score: {self.alpha_score}")
+
+        return self.alpha_pos, self.alpha_score
+
+# Example Usage
+def sphere_function(x):
+    return np.sum(x**2)
+
+gwo = GreyWolfOptimizer(obj_function=sphere_function, dim=5, lb=-10, ub=10, population_size=30, max_iter=50)
+best_position, best_score = gwo.optimize()
+print("Best Position:", best_position)
+print("Best Score:", best_score)
